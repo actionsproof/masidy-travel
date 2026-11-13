@@ -2,12 +2,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
 /*
- * MASIDY TRAVEL - PHASES 1-3
- * SPA entry. Loads locale, theme, session. Renders app shell + router.
- * Uses vanilla React + fetch. Server routes are in /src/index.ts (Cloudflare DO).
+ * MASIDY TRAVEL - PHASES 1-7
+ * SPA entry. Auth, roles, marketplace, bookings, payments,
+ * supplier connectors, AI assistant, i18n, multi-currency.
  */
 
-// --- Icons (inline SVG) ---
+// --- Icons ---
 const IconHome = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
 const IconMap = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>;
 const IconBriefcase = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>;
@@ -28,25 +28,30 @@ const IconCheck = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="no
 const AlertCircle = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>;
 const Trash = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
 const More = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>;
+const Edit = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
+const Sparkles = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/><path d="M19 15l1 2 2 1-2 1-1 2-1-2-2-1 2-1z"/><path d="M5 15l1 2 2 1-2 1-1 2-1-2-2-1 2-1z"/></svg>;
+const Plane = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12h20"/><path d="M13 2.5l6 9.5-6 9.5"/><path d="M11 21.5l-6-9.5 6-9.5"/><path d="M7 12h10"/></svg>;
+const Bed = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8"/><path d="M4 10V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3"/><path d="M6 20h12"/></svg>;
+const CardIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>;
+const BoxStack = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>;
 
 // --- i18n ---
 const DICT = {
   en: {
-    appName: 'Masidy Travel',
-    tagline: 'Travel marketplace',
+    appName: 'Masidy Travel', tagline: 'Travel marketplace',
     signIn: 'Sign in', signUp: 'Sign up', email: 'Email', password: 'Password', name: 'Full name',
     forgot: 'Forgot?', noAccount: 'No account?', haveAccount: 'Already have an account?',
     role: 'I am a', traveler: 'Traveler', seller: 'Seller', company: 'Company', supplier: 'Supplier',
-    continue: 'Continue', save: 'Save changes', create: 'Create', cancel: 'Cancel', search: 'Search',
-    dashboard: 'Dashboard', companies: 'Companies', products: 'Products', bookings: 'Bookings',
+    continue: 'Continue', save: 'Save changes', create: 'Create', cancel: 'Cancel', delete: 'Delete', edit: 'Edit',
+    search: 'Search', dashboard: 'Dashboard', companies: 'Companies', products: 'Products', bookings: 'Bookings',
     sellers: 'Sellers', ledger: 'Ledger', payouts: 'Payouts', customers: 'Customers', reports: 'Reports',
     settings: 'Settings', support: 'Support', logout: 'Log out', marketplace: 'Marketplace',
     categories: 'Categories', all: 'All', filters: 'Filters', price: 'Price', perPerson: 'per person',
-    type: 'Type', location: 'Location', rating: 'Rating', duration: 'Duration', availability: 'Availability',
+    type: 'Type', location: 'Location', duration: 'Duration', availability: 'Availability',
     addProduct: 'Add product', productTypes: { tour: 'Tour', hotel: 'Hotel', package: 'Package', transfer: 'Transfer', car: 'Car rental' },
     status: { pending: 'Pending', confirmed: 'Confirmed', completed: 'Completed', cancelled: 'Cancelled' },
     moneySplit: 'Money split', basePrice: 'Base price', sellerCommission: 'Seller commission', platformFee: 'Platform fee', companyShare: 'Company share',
-    amount: 'Amount', requestPayout: 'Request payout', markPaid: 'Mark paid', approved: 'Approved', pendingApproval: 'Pending approval',
+    amount: 'Amount', requestPayout: 'Request payout', markPaid: 'Mark paid', approved: 'Paid', pendingApproval: 'Requested',
     approve: 'Approve', reject: 'Reject', emptyProducts: 'No products yet', emptyProductsHint: 'Add your first tour, hotel or package to start receiving bookings.',
     emptyBookings: 'No bookings yet', emptyBookingsHint: 'Bookings will appear here once travelers reserve your products.',
     emptySellers: 'No sellers yet', emptySellersHint: 'Invite independent sellers to resell your products and earn commissions.',
@@ -62,26 +67,40 @@ const DICT = {
     percent: 'Percent', fixedPerPerson: 'Fixed per person', bookingForm: 'Booking details', travelers: 'Travelers',
     notes: 'Notes', bookNow: 'Book now', view: 'View', back: 'Back', noResults: 'No results', clearFilters: 'Clear filters',
     from: 'From', to: 'To', apply: 'Apply', date: 'Date', guestCount: 'Guests', startDate: 'Start date', endDate: 'End date',
-    supplierConnector: 'Supplier connectors', connectorHint: 'Connect external hotel or transport suppliers. (Phase 5)',
+    supplierConnector: 'Supplier connectors', connectorHint: 'Connect external hotel or transport suppliers.',
     adminPanel: 'Admin panel', users: 'Users', complaints: 'Complaints', adminOverview: 'Admin overview',
     onboardWelcome: 'Travel together, grow together.', onboardSubtitle: 'Sign up free, list your products, invite sellers, and accept bookings from travelers around the world.',
-    needApproval: 'Account awaiting approval', approvalHint: 'An admin will review your account shortly.'
+    needApproval: 'Account awaiting approval', approvalHint: 'An admin will review your account shortly.',
+    checkout: 'Checkout', payNow: 'Pay now', paymentSuccess: 'Payment successful', bookingPaid: 'Booking paid',
+    simulatedCard: 'Test card', cardNumber: 'Card number', expiry: 'Expiry', cvc: 'CVC', processPayment: 'Process payment',
+    paymentFailed: 'Payment failed', retry: 'Retry', youPaid: 'You paid', orderTracking: 'Order tracking', orders: 'Orders',
+    thanksForBooking: 'Thank you for your booking', paymentMethod: 'Payment method', paymentPending: 'Payment pending',
+    paymentCaptured: 'Captured', completeCapture: 'Complete & capture', aiAssistant: 'AI Assistant', tripPlanner: 'Trip planner',
+    destination: 'Destination', days: 'Days', budget: 'Budget', generatePlan: 'Generate plan', aiPlanTitle: 'Your trip plan',
+    offerFinder: 'Offer finder', topOffers: 'Top offers', estimatedProfit: 'Est. profit per booking', noOffers: 'No offers match. Try another destination or category.',
+    writeWithAI: 'Write with AI', productWriter: 'Product writer', translate: 'Translate', originalText: 'Original text',
+    translatedText: 'Translation', generate: 'Generate', translateNow: 'Translate now', aiTools: 'AI tools',
+    connectors: 'Connectors', connectorName: 'Connector name', provider: 'Provider', config: 'Config JSON', addConnector: 'Add connector',
+    testConnector: 'Test connector', searchResults: 'Search results', noConnectors: 'No connectors yet', connectorTypes: 'Connector types',
+    testSearch: 'Test search', active: 'Active', inactive: 'Inactive', testCardHint: 'This is a simulated payment. No real card is charged.',
+    processing: 'Processing…', updated: 'Updated', saved: 'Saved', connect: 'Connect', searchSuppliers: 'Search suppliers',
+    link: 'Link', getLink: 'Get tracking link', copyLink: 'Copy tracking link', linkReady: 'Your tracking link is ready'
   },
   ar: {
     appName: 'مسيدي ترافل', tagline: 'سوق السفر', signIn: 'تسجيل الدخول', signUp: 'إنشاء حساب',
     email: 'البريد الإلكتروني', password: 'كلمة المرور', name: 'الاسم الكامل',
     forgot: 'نسيت؟', noAccount: 'ليس لديك حساب؟', haveAccount: 'لديك حساب؟',
     role: 'أنا', traveler: 'مسافر', seller: 'بائع', company: 'شركة', supplier: 'مورّد',
-    continue: 'متابعة', save: 'حفظ التغييرات', create: 'إنشاء', cancel: 'إلغاء', search: 'بحث',
-    dashboard: 'لوحة التحكم', companies: 'الشركات', products: 'المنتجات', bookings: 'الحجوزات',
+    continue: 'متابعة', save: 'حفظ التغييرات', create: 'إنشاء', cancel: 'إلغاء', delete: 'حذف', edit: 'تعديل',
+    search: 'بحث', dashboard: 'لوحة التحكم', companies: 'الشركات', products: 'المنتجات', bookings: 'الحجوزات',
     sellers: 'البائعون', ledger: 'السجل', payouts: 'المدفوعات', customers: 'العملاء', reports: 'التقارير',
     settings: 'الإعدادات', support: 'الدعم', logout: 'خروج', marketplace: 'السوق',
     categories: 'الفئات', all: 'الكل', filters: 'التصفية', price: 'السعر', perPerson: 'للشخص',
-    type: 'النوع', location: 'الموقع', rating: 'التقييم', duration: 'المدة', availability: 'التوفر',
+    type: 'النوع', location: 'الموقع', duration: 'المدة', availability: 'التوفر',
     addProduct: 'إضافة منتج', productTypes: { tour: 'جولة', hotel: 'فندق', package: 'باقة', transfer: 'مواصلات', car: 'تأجير سيارة' },
     status: { pending: 'معلّق', confirmed: 'مؤكد', completed: 'مكتمل', cancelled: 'ملغى' },
     moneySplit: 'توزيع المال', basePrice: 'السعر الأساسي', sellerCommission: 'عمولة البائع', platformFee: 'رسوم المنصة', companyShare: 'حصة الشركة',
-    amount: 'المبلغ', requestPayout: 'طلب دفع', markPaid: 'تعليم كمدفوع', approved: 'معتمد', pendingApproval: 'بانتظار الموافقة',
+    amount: 'المبلغ', requestPayout: 'طلب دفع', markPaid: 'تعليم كمدفوع', approved: 'مدفوع', pendingApproval: 'مطلوب',
     approve: 'موافقة', reject: 'رفض', emptyProducts: 'لا يوجد منتجات بعد', emptyProductsHint: 'أضف جولتك أو فندقك أو باقتك الأولى لاستقبال الحجوزات.',
     emptyBookings: 'لا يوجد حجوزات بعد', emptyBookingsHint: 'تظهر الحجوزات هنا عندما يحجز المسافرون منتجاتك.',
     emptySellers: 'لا يوجد بائعون بعد', emptySellersHint: 'ادعُ بائعين مستقلين لإعادة بيع منتجاتك مقابل عمولة.',
@@ -93,28 +112,42 @@ const DICT = {
     totalBookings: 'إجمالي الحجوزات', revenue: 'الإيرادات', availableBalance: 'الرصيد المتاح', activeProducts: 'المنتجات النشطة',
     language: 'اللغة', theme: 'المظهر', currency: 'العملة', light: 'فاتح', dark: 'داكن', system: 'النظام',
     companyName: 'اسم الشركة', taxId: 'الرقم الضريبي', phone: 'الهاتف', website: 'الموقع الإلكتروني', bio: 'نبذة',
-    sellerCode: 'رمز البائع', link: 'الرابط', copy: 'نسخ', commission: 'العمولة',
+    sellerCode: 'رمز البائع', link: 'رابط', copy: 'نسخ', commission: 'العمولة',
     percent: 'نسبة مئوية', fixedPerPerson: 'مبلغ ثابت للشخص', bookingForm: 'تفاصيل الحجز', travelers: 'المسافرون',
     notes: 'ملاحظات', bookNow: 'احجز الآن', view: 'عرض', back: 'رجوع', noResults: 'لا توجد نتائج', clearFilters: 'مسح الفلاتر',
     from: 'من', to: 'إلى', apply: 'تطبيق', date: 'التاريخ', guestCount: 'الضيوف', startDate: 'تاريخ البدء', endDate: 'تاريخ الانتهاء',
-    supplierConnector: 'موصلات الموردين', connectorHint: 'اربط موردي فنادق أو نقل خارجيين. (المرحلة ٥)',
+    supplierConnector: 'موصلات الموردين', connectorHint: 'اربط موردي فنادق أو نقل خارجيين.',
     adminPanel: 'لوحة المشرف', users: 'المستخدمون', complaints: 'الشكاوى', adminOverview: 'نظرة مشرف',
     onboardWelcome: 'سافر معاً، انمو معاً.', onboardSubtitle: 'سجّل مجاناً، ادرج منتجاتك، ادعُ بائعين، واستقبل حجوزات من مسافرين حول العالم.',
-    needApproval: 'الحساب بانتظار الموافقة', approvalHint: 'سيراجع المشرف حسابك قريباً.'
+    needApproval: 'الحساب بانتظار الموافقة', approvalHint: 'سيراجع المشرف حسابك قريباً.',
+    checkout: 'الدفع', payNow: 'ادفع الآن', paymentSuccess: 'تم الدفع بنجاح', bookingPaid: 'تم دفع الحجز',
+    simulatedCard: 'بطاقة تجريبية', cardNumber: 'رقم البطاقة', expiry: 'تاريخ الانتهاء', cvc: 'CVC', processPayment: 'معالجة الدفع',
+    paymentFailed: 'فشل الدفع', retry: 'إعادة المحاولة', youPaid: 'دفعت', orderTracking: 'تتبع الطلب', orders: 'طلباتي',
+    thanksForBooking: 'شكراً لحجزك', paymentMethod: 'طريقة الدفع', paymentPending: 'بانتظار الدفع',
+    paymentCaptured: 'مستلمة', completeCapture: 'إكمال وتحصيل', aiAssistant: 'المساعد الذكي', tripPlanner: 'مخطّط الرحلات',
+    destination: 'الوجهة', days: 'الأيام', budget: 'الميزانية', generatePlan: 'إنشاء الخطة', aiPlanTitle: 'خطتك للرحلة',
+    offerFinder: 'الباحث عن العروض', topOffers: 'أفضل العروض', estimatedProfit: 'الربح المتوقع للحجز', noOffers: 'لا توجد عروض مطابقة. جرّب وجهة أو فئة أخرى.',
+    writeWithAI: 'كتابة بالذكاء الاصطناعي', productWriter: 'كاتب المنتجات', translate: 'ترجمة', originalText: 'النص الأصلي',
+    translatedText: 'الترجمة', generate: 'إنشاء', translateNow: 'ترجم الآن', aiTools: 'أدوات الذكاء الاصطناعي',
+    connectors: 'موصلات الموردين', connectorName: 'اسم الموصل', provider: 'المزوّد', config: 'إعدادات JSON', addConnector: 'إضافة موصل',
+    testConnector: 'اختبار الموصل', searchResults: 'نتائج البحث', noConnectors: 'لا توجد موصلات بعد', connectorTypes: 'أنواع الموصلات',
+    testSearch: 'بحث تجريبي', active: 'نشط', inactive: 'غير نشط', testCardHint: 'هذا دفع محاكى. لا يتم خصم أي مبلغ حقيقي.',
+    processing: 'جاري المعالجة…', updated: 'تم التحديث', saved: 'تم الحفظ', connect: 'اتصال', searchSuppliers: 'البحث في الموردين',
+    link: 'رابط', getLink: 'احصل على رابط التتبع', copyLink: 'نسخ رابط التتبع', linkReady: 'رابط التتبع جاهز'
   },
   it: {
     appName: 'Masidy Travel', tagline: 'Marketplace di viaggi', signIn: 'Accedi', signUp: 'Registrati',
     email: 'Email', password: 'Password', name: 'Nome completo', forgot: 'Dimenticata?', noAccount: 'Non hai un account?', haveAccount: 'Hai già un account?',
     role: 'Sono un', traveler: 'Viaggiatore', seller: 'Venditore', company: 'Azienda', supplier: 'Fornitore',
-    continue: 'Continua', save: 'Salva modifiche', create: 'Crea', cancel: 'Annulla', search: 'Cerca',
-    dashboard: 'Dashboard', companies: 'Aziende', products: 'Prodotti', bookings: 'Prenotazioni', sellers: 'Venditori',
+    continue: 'Continua', save: 'Salva modifiche', create: 'Crea', cancel: 'Annulla', delete: 'Elimina', edit: 'Modifica',
+    search: 'Cerca', dashboard: 'Dashboard', companies: 'Aziende', products: 'Prodotti', bookings: 'Prenotazioni', sellers: 'Venditori',
     ledger: 'Libro mastro', payouts: 'Pagamenti', customers: 'Clienti', reports: 'Report', settings: 'Impostazioni', support: 'Supporto',
     logout: 'Esci', marketplace: 'Marketplace', categories: 'Categorie', all: 'Tutti', filters: 'Filtri', price: 'Prezzo', perPerson: 'a persona',
-    type: 'Tipo', location: 'Località', rating: 'Valutazione', duration: 'Durata', availability: 'Disponibilità',
+    type: 'Tipo', location: 'Località', duration: 'Durata', availability: 'Disponibilità',
     addProduct: 'Aggiungi prodotto', productTypes: { tour: 'Tour', hotel: 'Hotel', package: 'Pacchetto', transfer: 'Transfer', car: 'Autonoleggio' },
     status: { pending: 'In attesa', confirmed: 'Confermata', completed: 'Completata', cancelled: 'Annullata' },
     moneySplit: 'Suddivisione importi', basePrice: 'Prezzo base', sellerCommission: 'Commissione venditore', platformFee: 'Commissione piattaforma', companyShare: 'Quota azienda',
-    amount: 'Importo', requestPayout: 'Richiedi pagamento', markPaid: 'Segna pagato', approved: 'Approvato', pendingApproval: 'In attesa',
+    amount: 'Importo', requestPayout: 'Richiedi pagamento', markPaid: 'Segna pagato', approved: 'Pagato', pendingApproval: 'Richiesto',
     approve: 'Approva', reject: 'Rifiuta', emptyProducts: 'Nessun prodotto', emptyProductsHint: 'Aggiungi il tuo primo tour, hotel o pacchetto per ricevere prenotazioni.',
     emptyBookings: 'Nessuna prenotazione', emptyBookingsHint: 'Le prenotazioni appariranno quando i viaggiatori prenoteranno i tuoi prodotti.',
     emptySellers: 'Nessun venditore', emptySellersHint: 'Invita venditori indipendenti a rivendere i tuoi prodotti su commissione.',
@@ -130,10 +163,24 @@ const DICT = {
     percent: 'Percentuale', fixedPerPerson: 'Fisso a persona', bookingForm: 'Dettagli prenotazione', travelers: 'Viaggiatori',
     notes: 'Note', bookNow: 'Prenota ora', view: 'Vedi', back: 'Indietro', noResults: 'Nessun risultato', clearFilters: 'Azzera filtri',
     from: 'Da', to: 'A', apply: 'Applica', date: 'Data', guestCount: 'Ospiti', startDate: 'Data inizio', endDate: 'Data fine',
-    supplierConnector: 'Connettori fornitori', connectorHint: 'Collega fornitori esterni di hotel o trasporti. (Fase 5)',
+    supplierConnector: 'Connettori fornitori', connectorHint: 'Collega fornitori esterni di hotel o trasporti.',
     adminPanel: 'Pannello admin', users: 'Utenti', complaints: 'Reclami', adminOverview: 'Panoramica admin',
     onboardWelcome: 'Viaggiare insieme, crescere insieme.', onboardSubtitle: 'Registrati gratis, pubblica i tuoi prodotti, invita venditori e accetta prenotazioni da viaggiatori in tutto il mondo.',
-    needApproval: 'Account in attesa di approvazione', approvalHint: 'Un admin revisionerà presto il tuo account.'
+    needApproval: 'Account in attesa di approvazione', approvalHint: 'Un admin revisionerà presto il tuo account.',
+    checkout: 'Checkout', payNow: 'Paga ora', paymentSuccess: 'Pagamento riuscito', bookingPaid: 'Prenotazione pagata',
+    simulatedCard: 'Carta di test', cardNumber: 'Numero carta', expiry: 'Scadenza', cvc: 'CVC', processPayment: 'Elabora pagamento',
+    paymentFailed: 'Pagamento fallito', retry: 'Riprova', youPaid: 'Hai pagato', orderTracking: 'Tracciamento ordine', orders: 'I miei ordini',
+    thanksForBooking: 'Grazie per la tua prenotazione', paymentMethod: 'Metodo di pagamento', paymentPending: 'In attesa di pagamento',
+    paymentCaptured: 'Riscosso', completeCapture: 'Completa e riscuoti', aiAssistant: 'Assistente AI', tripPlanner: 'Pianificatore viaggi',
+    destination: 'Destinazione', days: 'Giorni', budget: 'Budget', generatePlan: 'Genera piano', aiPlanTitle: 'Il tuo piano di viaggio',
+    offerFinder: 'Trova offerte', topOffers: 'Migliori offerte', estimatedProfit: 'Profitto stimato a prenotazione', noOffers: 'Nessuna offerta corrispondente. Prova un\'altra destinazione o categoria.',
+    writeWithAI: 'Scrivi con AI', productWriter: 'Scrittore prodotti', translate: 'Traduci', originalText: 'Testo originale',
+    translatedText: 'Traduzione', generate: 'Genera', translateNow: 'Traduci ora', aiTools: 'Strumenti AI',
+    connectors: 'Connettori fornitori', connectorName: 'Nome connettore', provider: 'Provider', config: 'Config JSON', addConnector: 'Aggiungi connettore',
+    testConnector: 'Testa connettore', searchResults: 'Risultati ricerca', noConnectors: 'Nessun connettore', connectorTypes: 'Tipi di connettore',
+    testSearch: 'Ricerca di test', active: 'Attivo', inactive: 'Inattivo', testCardHint: 'Questo è un pagamento simulato. Nessuna carta reale viene addebitata.',
+    processing: 'Elaborazione…', updated: 'Aggiornato', saved: 'Salvato', connect: 'Connetti', searchSuppliers: 'Cerca fornitori',
+    link: 'Link', getLink: 'Ottieni link tracciato', copyLink: 'Copia link tracciato', linkReady: 'Il tuo link tracciato è pronto'
   }
 };
 
@@ -154,11 +201,13 @@ function t(lang, key, dict = DICT) {
   return v ?? dict.en[key] ?? String(key);
 }
 
-function formatMoney(cents, currency) {
+function formatMoney(cents, currency, lang = 'en') {
   const c = CURRENCIES[currency] || CURRENCIES.USD;
-  const v = Math.round(cents * c.rate) / 100;
-  if (c.symbol === 'AED' || c.symbol === 'SAR') return `${c.symbol} ${v.toFixed(2)}`;
-  return `${c.symbol}${v.toFixed(2)}`;
+  const value = Math.round(cents * c.rate) / 100;
+  const locale = lang === 'ar' ? 'ar' : lang === 'it' ? 'it' : 'en';
+  const nf = new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (['AED', 'SAR'].includes(c.symbol)) return `${c.symbol} ${nf.format(value)}`;
+  return `${c.symbol}${nf.format(value)}`;
 }
 
 function formatDate(iso, lang) {
@@ -194,7 +243,8 @@ function useFetch(path, deps = []) {
   return [state, () => api(path).then(d => { setState({ data: d, loading: false, error: null }); return d; })];
 }
 
-// --- Theme / lang context ---
+// --- Global context ---
+const GlobalCtx = React.createContext({});
 function useGlobal() {
   const [lang, setLang] = useState(() => {
     if (typeof localStorage !== 'undefined') {
@@ -226,23 +276,17 @@ function useGlobal() {
   return { lang, setLang, currency, setCurrency, theme, setTheme };
 }
 
-// --- UI Primitives ---
+// --- UI primitives ---
 function Button({ children, onClick, variant = 'primary', size = 'md', disabled, type = 'button', className = '', full = false, left, right }) {
-  const cls = [
-    'btn',
-    `btn--${variant}`,
-    `btn--${size}`,
-    full ? 'btn--full' : '',
-    className
-  ].join(' ');
+  const cls = ['btn', `btn--${variant}`, `btn--${size}`, full ? 'btn--full' : '', className].join(' ');
   return <button type={type} onClick={onClick} disabled={disabled} className={cls}>{left && <span className="btn__icon">{left}</span>}<span>{children}</span>{right && <span className="btn__icon">{right}</span>}</button>;
 }
-function Input({ label, type = 'text', value, onChange, placeholder, required, error, hint, name, id, min, max, step, rows, as = 'input' }) {
+function Input({ label, type = 'text', value, onChange, placeholder, required, error, hint, name, id, min, max, step, rows, as = 'input', readOnly }) {
   const El = as;
   return (
     <div className="field">
       {label && <label htmlFor={id || name} className="field__label">{label}</label>}
-      <El id={id || name} name={name} type={type} value={value} onChange={onChange} placeholder={placeholder} required={required} min={min} max={max} step={step} rows={rows}
+      <El id={id || name} name={name} type={type} value={value} onChange={onChange} placeholder={placeholder} required={required} min={min} max={max} step={step} rows={rows} readOnly={readOnly}
         className={`field__input ${error ? 'field__input--error' : ''}`} />
       {error && <span className="field__error"><AlertCircle /> {error}</span>}
       {hint && !error && <span className="field__hint">{hint}</span>}
@@ -259,6 +303,14 @@ function Select({ label, value, onChange, options, required, error, id, name }) 
         </select>
         <span className="select-chevron"><IconChevronDown /></span>
       </div>
+    </div>
+  );
+}
+function Textarea({ label, value, onChange, placeholder, rows = 4, required, id, name }) {
+  return (
+    <div className="field">
+      {label && <label htmlFor={id || name} className="field__label">{label}</label>}
+      <textarea id={id || name} name={name} value={value} onChange={onChange} placeholder={placeholder} required={required} rows={rows} className="field__input" />
     </div>
   );
 }
@@ -310,6 +362,22 @@ function Spinner() {
 function Toast({ message, onClose }) {
   useEffect(() => { const t = setTimeout(onClose, 2500); return () => clearTimeout(t); }, [onClose]);
   return <div className="toast"><IconCheck /> {message}</div>;
+}
+function Modal({ open, onClose, title, children, actions }) {
+  if (!open) return null;
+  return (
+    <div className="modal">
+      <div className="modal__backdrop" onClick={onClose} />
+      <div className="modal__content">
+        <div className="modal__header">
+          <h3 className="modal__title">{title}</h3>
+          <button className="modal__close" onClick={onClose}><IconPlus /></button>
+        </div>
+        <div className="modal__body">{children}</div>
+        {actions && <div className="modal__footer">{actions}</div>}
+      </div>
+    </div>
+  );
 }
 
 // --- Auth ---
@@ -386,14 +454,13 @@ function useRouter(initial = '/') {
     window.addEventListener('hashchange', handler);
     return () => window.removeEventListener('hashchange', handler);
   }, []);
-  const push = (p) => { location.hash = p; };
   const params = useMemo(() => {
     const [base, qs] = path.split('?');
     const search = new URLSearchParams(qs || '');
     const parts = base.split('/').filter(Boolean);
     return { path: base, search, parts };
   }, [path]);
-  return { path, push, params };
+  return { path, push: (p) => { location.hash = p; }, params };
 }
 
 // --- Shell ---
@@ -412,23 +479,40 @@ function Shell({ user, onLogout, children }) {
       { k: 'sellers', icon: IconUsers, href: '#/sellers' },
       { k: 'ledger', icon: IconDollar, href: '#/ledger' },
       { k: 'payouts', icon: IconDollar, href: '#/payouts' },
+      { k: 'aiTools', icon: Sparkles, href: '#/ai-tools' },
+    ];
+    const supplier = [
+      { k: 'products', icon: IconBriefcase, href: '#/products' },
+      { k: 'connectors', icon: BoxStack, href: '#/connectors' },
+      { k: 'bookings', icon: IconCalendar, href: '#/bookings' },
+      { k: 'sellers', icon: IconUsers, href: '#/sellers' },
+      { k: 'ledger', icon: IconDollar, href: '#/ledger' },
+      { k: 'payouts', icon: IconDollar, href: '#/payouts' },
+      { k: 'aiTools', icon: Sparkles, href: '#/ai-tools' },
     ];
     const seller = [
-      { k: 'products', icon: IconBriefcase, href: '#/seller/products' },
+      { k: 'products', icon: IconBriefcase, href: '#/products' },
       { k: 'earnings', icon: IconDollar, href: '#/ledger' },
+      { k: 'aiAssistant', icon: Sparkles, href: '#/seller/ai' },
+    ];
+    const traveler = [
+      { k: 'marketplace', icon: IconMap, href: '#/marketplace' },
+      { k: 'orders', icon: IconCalendar, href: '#/orders' },
+      { k: 'tripPlanner', icon: Plane, href: '#/trip-planner' },
+      { k: 'settings', icon: IconSettings, href: '#/settings' },
     ];
     const admin = [
       { k: 'companies', icon: IconBriefcase, href: '#/admin/companies' },
       { k: 'users', icon: IconUsers, href: '#/admin/users' },
       { k: 'bookings', icon: IconCalendar, href: '#/admin/bookings' },
       { k: 'payouts', icon: IconDollar, href: '#/admin/payouts' },
+      { k: 'connectors', icon: BoxStack, href: '#/connectors' },
     ];
-    const traveler = [];
     if (role === 'admin') return [...common, ...admin];
     if (role === 'company') return [...common, ...company];
-    if (role === 'supplier') return [...common, ...company, { k: 'supplierConnector', icon: IconSettings, href: '#/connectors' }];
+    if (role === 'supplier') return [...common, ...supplier];
     if (role === 'seller') return [...common, ...seller];
-    return [...common, { k: 'bookings', icon: IconCalendar, href: '#/bookings' }];
+    return [...common, ...traveler];
   }
 
   const items = nav(user.role);
@@ -443,7 +527,7 @@ function Shell({ user, onLogout, children }) {
         </div>
         <nav className="shell__nav">
           {items.map(item => (
-            <a key={item.k} href={item.href} className="shell__nav-item">
+            <a key={item.k} href={item.href} className="shell__nav-item" onClick={() => setMobileOpen(false)}>
               <item.icon /> <span>{t(lang, item.k)}</span>
             </a>
           ))}
@@ -477,9 +561,7 @@ function Shell({ user, onLogout, children }) {
             </button>
           </div>
         </header>
-        <div className="shell__content">
-          {children}
-        </div>
+        <div className="shell__content">{children}</div>
       </main>
     </div>
   );
@@ -490,14 +572,15 @@ function Dashboard({ user }) {
   const { lang, currency } = React.useContext(GlobalCtx);
   const [{ data, loading }] = useFetch('/stats');
   const s = data || {};
+  if (loading) return <div className="skeleton skeleton--block" />;
   return (
     <div>
       <h1 className="page-title">{t(lang, 'welcomeTitle')}</h1>
       <p className="page-subtitle">{t(lang, 'welcomeSubtitle')}</p>
       <div className="kpi-grid">
         <Card title={t(lang, 'totalBookings')}><div className="kpi-value">{s.totalBookings ?? 0}</div></Card>
-        <Card title={t(lang, 'revenue')}><div className="kpi-value">{formatMoney(s.revenueCents ?? 0, currency)}</div></Card>
-        <Card title={t(lang, 'availableBalance')}><div className="kpi-value">{formatMoney(s.availableBalanceCents ?? 0, currency)}</div></Card>
+        <Card title={t(lang, 'revenue')}><div className="kpi-value">{formatMoney(s.revenueCents ?? 0, currency, lang)}</div></Card>
+        <Card title={t(lang, 'availableBalance')}><div className="kpi-value">{formatMoney(s.availableBalanceCents ?? 0, currency, lang)}</div></Card>
         <Card title={t(lang, 'activeProducts')}><div className="kpi-value">{s.activeProducts ?? 0}</div></Card>
       </div>
       {user.role === 'company' && user.companyStatus === 'pending' && (
@@ -520,11 +603,16 @@ function Marketplace({ user }) {
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [{ data, loading }, reload] = useFetch('/products');
-  const [toast, setToast] = useState('');
+
+  useEffect(() => {
+    const qs = new URLSearchParams(location.hash.split('?')[1] || '');
+    const ref = qs.get('ref');
+    if (ref) api('/links/visit', { method: 'POST', body: { code: ref } }).catch(() => {});
+  }, []);
 
   const products = data?.products || [];
   const filtered = products.filter(p => {
-    const okSearch = !search || [p.title, p.location, p.description].some(v => String(v || '').toLowerCase().includes(search.toLowerCase()));
+    const okSearch = !search || [p.title, p.location, p.description, p.tags].some(v => String(v || '').toLowerCase().includes(search.toLowerCase()));
     const okType = type === 'all' || p.type === type;
     const okLoc = !location || (p.location || '').toLowerCase().includes(location.toLowerCase());
     const price = (p.travelerPriceCents ?? p.priceCents);
@@ -552,10 +640,10 @@ function Marketplace({ user }) {
         filtered.length === 0 ? <Empty title={t(lang, 'noResults')} hint={t(lang, 'clearFilters')} /> : (
           <div className="product-grid">
             {filtered.map(p => (
-              <a key={p.id} href={`#/products/${p.id}`} className="product-card" style={{ backgroundImage: `linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.6)), url(${p.imageUrl || 'https://images.unsplash.com/photo-1500835556837-99ac94a94552?w=600&q=80'})` }}>
+              <a key={p.id} href={`#/products/${p.id}${user?.sellerCode ? `?ref=${user.sellerCode}` : ''}`} className="product-card" style={{ backgroundImage: `linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.6)), url(${p.imageUrl || 'https://images.unsplash.com/photo-1500835556837-99ac94a94552?w=600&q=80'})` }}>
                 <div className="product-card__meta">
                   <Badge tone="brand">{t(lang, `productTypes.${p.type}`)}</Badge>
-                  <span className="product-card__price">{formatMoney(p.travelerPriceCents ?? p.priceCents, currency)}</span>
+                  <span className="product-card__price">{formatMoney(p.travelerPriceCents ?? p.priceCents, currency, lang)}</span>
                 </div>
                 <h3 className="product-card__title">{p.title}</h3>
                 <p className="product-card__loc">{p.location}</p>
@@ -564,7 +652,6 @@ function Marketplace({ user }) {
           </div>
         )
       )}
-      {toast && <Toast message={toast} onClose={() => setToast('')} />}
     </div>
   );
 }
@@ -577,7 +664,13 @@ function ProductDetail({ id, user, navigate }) {
   const [end, setEnd] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
-  const [booking, setBooking] = useState(null);
+  const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    const qs = new URLSearchParams(location.hash.split('?')[1] || '');
+    const ref = qs.get('ref');
+    if (ref) api('/links/visit', { method: 'POST', body: { code: ref } }).catch(() => {});
+  }, []);
 
   if (loading || !data) return <div className="skeleton skeleton--block" />;
   const p = data.product;
@@ -585,22 +678,13 @@ function ProductDetail({ id, user, navigate }) {
   async function book(e) {
     e.preventDefault();
     setError('');
+    setCreating(true);
     try {
       const search = new URLSearchParams(location.hash.split('?')[1] || '');
       const res = await api('/bookings', { method: 'POST', body: { productId: p.id, guests: Number(guests), startDate: start || null, endDate: end || null, notes, sellerCode: search.get('ref') || null } });
-      setBooking(res.booking);
-    } catch (err) { setError(err.message || 'Error'); }
+      navigate(`/checkout/${res.booking.id}`);
+    } catch (err) { setError(err.message || 'Error'); setCreating(false); }
   }
-
-  if (booking) return (
-    <Card className="booking-confirm">
-      <div className="booking-confirm__check"><IconCheck /></div>
-      <h2>{t(lang, 'confirmed')} #{booking.id}</h2>
-      <p>{t(lang, 'status')}: <Badge tone="info" dot>{t(lang, 'status.pending')}</Badge></p>
-      <p>{formatMoney(booking.travelerPriceCents, currency)}</p>
-      <Button variant="secondary" onClick={() => navigate('/bookings')}>{t(lang, 'view')}</Button>
-    </Card>
-  );
 
   return (
     <div className="product-detail">
@@ -610,7 +694,7 @@ function ProductDetail({ id, user, navigate }) {
       <div className="product-detail__meta">
         <Badge tone="brand">{t(lang, `productTypes.${p.type}`)}</Badge>
         <span>{p.location}</span>
-        <span>{formatMoney(p.travelerPriceCents ?? p.priceCents, currency)} / {t(lang, 'perPerson')}</span>
+        <span>{formatMoney(p.travelerPriceCents ?? p.priceCents, currency, lang)} / {t(lang, 'perPerson')}</span>
       </div>
       <p className="product-detail__desc">{p.description}</p>
       <Card title={t(lang, 'bookingForm')}>
@@ -624,11 +708,127 @@ function ProductDetail({ id, user, navigate }) {
           <Input as="textarea" label={t(lang, 'notes')} rows={3} value={notes} onChange={e => setNotes(e.target.value)} />
           <div className="booking-form__total">
             <span>{t(lang, 'amount')}</span>
-            <strong>{formatMoney((p.travelerPriceCents ?? p.priceCents) * guests, currency)}</strong>
+            <strong>{formatMoney((p.travelerPriceCents ?? p.priceCents) * guests, currency, lang)}</strong>
           </div>
-          <Button full variant="primary" type="submit">{t(lang, 'bookNow')}</Button>
+          <Button full variant="primary" type="submit" disabled={creating}>{creating ? <Spinner /> : t(lang, 'bookNow')}</Button>
         </form>
       </Card>
+    </div>
+  );
+}
+
+function CheckoutPage({ id, navigate }) {
+  const { lang, currency } = React.useContext(GlobalCtx);
+  const [{ data, loading }, reload] = useFetch(`/bookings/${id}`);
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (data?.paymentIntent) setSuccess(data.paymentIntent.status === 'succeeded' || data.paymentIntent.status === 'captured');
+  }, [data]);
+
+  async function createPayment() {
+    const res = await api('/payments', { method: 'POST', body: { bookingId: Number(id), currency } });
+    return res.paymentIntent;
+  }
+
+  async function pay() {
+    setError('');
+    setProcessing(true);
+    try {
+      let pi = data?.paymentIntent;
+      if (!pi) pi = await createPayment();
+      await api(`/payments/${pi.id}/confirm`, { method: 'POST', body: { paymentMethod: 'card •••• 4242' } });
+      reload();
+      setSuccess(true);
+    } catch (err) { setError(err.message || 'Error'); }
+    finally { setProcessing(false); }
+  }
+
+  if (loading || !data) return <div className="skeleton skeleton--block" />;
+  const booking = data.booking;
+  const product = data.product;
+
+  if (success) return (
+    <Card className="booking-confirm">
+      <div className="booking-confirm__check"><IconCheck /></div>
+      <h2>{t(lang, 'paymentSuccess')}</h2>
+      <p>{t(lang, 'thanksForBooking')}</p>
+      <div className="booking-form__total"><span>{t(lang, 'youPaid')}</span><strong>{formatMoney(booking.travelerPriceCents, currency, lang)}</strong></div>
+      <div className="row-actions" style={{ justifyContent: 'center' }}>
+        <Button variant="secondary" onClick={() => navigate('/orders')}>{t(lang, 'orders')}</Button>
+        <Button onClick={() => navigate('/marketplace')}>{t(lang, 'marketplace')}</Button>
+      </div>
+    </Card>
+  );
+
+  return (
+    <div>
+      <h1 className="page-title">{t(lang, 'checkout')}</h1>
+      <div className="checkout-grid">
+        <Card title={t(lang, 'bookingForm')} subtitle={product?.title}>
+          {error && <div className="form-error"><AlertCircle /> {error}</div>}
+          <div className="checkout-summary">
+            <div className="checkout-line"><span>{t(lang, 'guestCount')}</span><span>{booking.guests}</span></div>
+            <div className="checkout-line"><span>{t(lang, 'basePrice')}</span><span>{formatMoney(booking.basePriceCents, currency, lang)}</span></div>
+            {booking.sellerCommissionCents > 0 && <div className="checkout-line"><span>{t(lang, 'sellerCommission')}</span><span>{formatMoney(booking.sellerCommissionCents, currency, lang)}</span></div>}
+            <div className="checkout-line checkout-line--total"><span>{t(lang, 'amount')}</span><strong>{formatMoney(booking.travelerPriceCents, currency, lang)}</strong></div>
+          </div>
+          <div className="payment-form">
+            <Input label={t(lang, 'cardNumber')} value="4242 4242 4242 4242" readOnly />
+            <div className="form-row">
+              <Input label={t(lang, 'expiry')} value="12 / 30" readOnly />
+              <Input label={t(lang, 'cvc')} value="123" readOnly />
+            </div>
+            <p className="field__hint"><CardIcon /> {t(lang, 'testCardHint')}</p>
+            <Button full variant="primary" onClick={pay} disabled={processing}>{processing ? <Spinner /> : t(lang, 'payNow')}</Button>
+          </div>
+        </Card>
+        <Card title={t(lang, 'moneySplit')}>
+          <div className="checkout-summary">
+            <div className="checkout-line"><span>{t(lang, 'basePrice')}</span><span>{formatMoney(booking.basePriceCents, currency, lang)}</span></div>
+            <div className="checkout-line"><span>{t(lang, 'platformFee')} (5%)</span><span>{formatMoney(booking.platformFeeCents, currency, lang)}</span></div>
+            <div className="checkout-line"><span>{t(lang, 'companyShare')}</span><span>{formatMoney(booking.companyShareCents, currency, lang)}</span></div>
+            {booking.sellerCommissionCents > 0 && <div className="checkout-line"><span>{t(lang, 'sellerCommission')}</span><span>{formatMoney(booking.sellerShareCents, currency, lang)}</span></div>}
+            <div className="checkout-line checkout-line--total"><span>{t(lang, 'amount')}</span><strong>{formatMoney(booking.travelerPriceCents, currency, lang)}</strong></div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function OrdersPage({ user }) {
+  const { lang, currency } = React.useContext(GlobalCtx);
+  const [{ data }, reload] = useFetch('/orders');
+  const orders = data?.orders || [];
+  const [action, setAction] = useState(null);
+
+  async function cancel(id) {
+    setAction(id);
+    try { await api(`/bookings/${id}/status`, { method: 'POST', body: { status: 'cancelled' } }); reload(); }
+    catch (e) { alert(e.message); }
+    finally { setAction(null); }
+  }
+
+  return (
+    <div>
+      <h1 className="page-title">{t(lang, 'orders')}</h1>
+      {orders.length === 0 ? <Empty icon={IconCalendar} title={t(lang, 'emptyBookings')} hint={t(lang, 'emptyBookingsHint')} /> : (
+        <div className="orders-list">
+          {orders.map(b => (
+            <Card key={b.id} title={`#${b.id} · ${b.productTitle}`} subtitle={b.companyName}>
+              <div className="order-meta">
+                <div><span>{formatDate(b.startDate, lang)}</span></div>
+                <div className="order-price">{formatMoney(b.travelerPriceCents, currency, lang)}</div>
+                <div><Badge tone={b.status === 'confirmed' ? 'success' : b.status === 'completed' ? 'brand' : b.status === 'cancelled' ? 'error' : 'warning'} dot>{t(lang, `status.${b.status}`)}</Badge></div>
+              </div>
+              {b.status === 'pending' && <Button size="sm" variant="ghost" onClick={() => cancel(b.id)} disabled={action === b.id}>{t(lang, 'cancel')}</Button>}
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -637,19 +837,38 @@ function ProductsPage({ user }) {
   const { lang, currency } = React.useContext(GlobalCtx);
   const [{ data }, reload] = useFetch('/products?owned=1');
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ title: '', type: 'tour', description: '', location: '', priceCents: '', commissionPercent: '10', commissionFixedCents: '0', imageUrl: '', duration: '', availability: 'daily' });
+  const [editing, setEditing] = useState(null);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [form, setForm] = useState({ title: '', type: 'tour', description: '', location: '', priceCents: '', commissionPercent: '10', commissionFixedCents: '0', imageUrl: '', duration: '', availability: 'daily', tags: '' });
   const [error, setError] = useState('');
   const [toast, setToast] = useState('');
+
+  function reset() { setForm({ title: '', type: 'tour', description: '', location: '', priceCents: '', commissionPercent: '10', commissionFixedCents: '0', imageUrl: '', duration: '', availability: 'daily', tags: '' }); setEditing(null); setError(''); }
 
   async function create(e) {
     e.preventDefault();
     setError('');
     try {
-      await api('/products', { method: 'POST', body: { ...form, priceCents: Math.round(Number(form.priceCents) * 100), commissionPercent: Number(form.commissionPercent), commissionFixedCents: Math.round(Number(form.commissionFixedCents) * 100) } });
-      setOpen(false);
-      setToast(t(lang, 'saved'));
-      reload();
+      if (editing) {
+        await api(`/products/${editing}`, { method: 'PATCH', body: { ...form, priceCents: form.priceCents ? Math.round(Number(form.priceCents) * 100) : undefined, commissionPercent: form.commissionPercent ? Number(form.commissionPercent) : undefined, commissionFixedCents: form.commissionFixedCents ? Math.round(Number(form.commissionFixedCents) * 100) : undefined } });
+        setToast(t(lang, 'updated'));
+      } else {
+        await api('/products', { method: 'POST', body: { ...form, priceCents: Math.round(Number(form.priceCents) * 100), commissionPercent: Number(form.commissionPercent), commissionFixedCents: Math.round(Number(form.commissionFixedCents) * 100) } });
+        setToast(t(lang, 'saved'));
+      }
+      setOpen(false); reset(); reload();
     } catch (err) { setError(err.message || 'Error'); }
+  }
+
+  async function del(id) {
+    if (!confirm(t(lang, 'delete'))) return;
+    await api(`/products/${id}`, { method: 'DELETE' }); reload(); setToast(t(lang, 'updated'));
+  }
+
+  function startEdit(p) {
+    setEditing(p.id);
+    setForm({ title: p.title, type: p.type, description: p.description || '', location: p.location || '', priceCents: (p.priceCents / 100).toString(), commissionPercent: String(p.commissionPercent), commissionFixedCents: (p.commissionFixedCents / 100).toString(), imageUrl: p.imageUrl || '', duration: p.duration || '', availability: p.availability || 'daily', tags: p.tags || '' });
+    setOpen(true);
   }
 
   return (
@@ -659,41 +878,88 @@ function ProductsPage({ user }) {
           <h1 className="page-title">{t(lang, 'products')}</h1>
           <p className="page-subtitle">{t(lang, 'addProduct')}</p>
         </div>
-        {user.role === 'company' && <Button onClick={() => setOpen(true)} left={<IconPlus />}>{t(lang, 'addProduct')}</Button>}
+        <div className="row-actions">
+          <Button variant="secondary" onClick={() => setAiOpen(true)} left={<Sparkles />}>{t(lang, 'writeWithAI')}</Button>
+          {user.role === 'company' && <Button onClick={() => { reset(); setOpen(true); }} left={<IconPlus />}>{t(lang, 'addProduct')}</Button>}
+        </div>
       </div>
-      {open && (
-        <Card title={t(lang, 'addProduct')} actions={<Button variant="ghost" onClick={() => setOpen(false)}>{t(lang, 'cancel')}</Button>}>
-          <form onSubmit={create} className="product-form">
-            {error && <div className="form-error"><AlertCircle /> {error}</div>}
-            <div className="form-row">
-              <Input label={t(lang, 'companyName')} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required />
-              <Select label={t(lang, 'type')} value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} options={Object.keys(DICT.en.productTypes).map(k => ({ value: k, label: t(lang, `productTypes.${k}`) }))} />
-            </div>
-            <Input label={t(lang, 'location')} value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} required />
-            <Input as="textarea" label={t(lang, 'bio')} rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
-            <div className="form-row">
-              <Input label={t(lang, 'price')} type="number" value={form.priceCents} onChange={e => setForm({ ...form, priceCents: e.target.value })} required />
-              <Input label={t(lang, 'duration')} value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })} />
-            </div>
-            <div className="form-row">
-              <Input label={t(lang, 'commission') + ' %'} type="number" min="0" max="50" value={form.commissionPercent} onChange={e => setForm({ ...form, commissionPercent: e.target.value })} />
-              <Input label={t(lang, 'commission') + ' ' + t(lang, 'fixedPerPerson')} type="number" value={form.commissionFixedCents} onChange={e => setForm({ ...form, commissionFixedCents: e.target.value })} />
-            </div>
-            <Input label="Image URL" value={form.imageUrl} onChange={e => setForm({ ...form, imageUrl: e.target.value })} />
-            <Button type="submit">{t(lang, 'create')}</Button>
-          </form>
-        </Card>
-      )}
-      {!data?.products?.length ? <Empty icon={IconBriefcase} title={t(lang, 'emptyProducts')} hint={t(lang, 'emptyProductsHint')} actions={user.role === 'company' && <Button onClick={() => setOpen(true)}>{t(lang, 'addProduct')}</Button>} /> : (
-        <Table columns={[{ label: t(lang, 'companyName') }, { label: t(lang, 'type') }, { label: t(lang, 'location') }, { label: t(lang, 'price'), numeric: true }, { label: t(lang, 'commission'), numeric: true }]}
+      <Modal open={open} onClose={() => setOpen(false)} title={editing ? t(lang, 'edit') : t(lang, 'addProduct')} actions={<><Button variant="secondary" onClick={() => setOpen(false)}>{t(lang, 'cancel')}</Button><Button onClick={create}>{editing ? t(lang, 'save') : t(lang, 'create')}</Button></>}>
+        <form onSubmit={create} className="product-form">
+          {error && <div className="form-error"><AlertCircle /> {error}</div>}
+          <div className="form-row">
+            <Input label={t(lang, 'companyName')} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required />
+            <Select label={t(lang, 'type')} value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} options={Object.keys(DICT.en.productTypes).map(k => ({ value: k, label: t(lang, `productTypes.${k}`) }))} />
+          </div>
+          <Input label={t(lang, 'location')} value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} required />
+          <Textarea label={t(lang, 'bio')} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
+          <div className="form-row">
+            <Input label={t(lang, 'price')} type="number" value={form.priceCents} onChange={e => setForm({ ...form, priceCents: e.target.value })} required />
+            <Input label={t(lang, 'duration')} value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })} />
+          </div>
+          <div className="form-row">
+            <Input label={t(lang, 'commission') + ' %'} type="number" min="0" max="50" value={form.commissionPercent} onChange={e => setForm({ ...form, commissionPercent: e.target.value })} />
+            <Input label={t(lang, 'commission') + ' ' + t(lang, 'fixedPerPerson')} type="number" value={form.commissionFixedCents} onChange={e => setForm({ ...form, commissionFixedCents: e.target.value })} />
+          </div>
+          <Input label="Image URL" value={form.imageUrl} onChange={e => setForm({ ...form, imageUrl: e.target.value })} />
+          <Input label={t(lang, 'tags')} value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} hint="Comma separated" />
+        </form>
+      </Modal>
+      <Modal open={aiOpen} onClose={() => setAiOpen(false)} title={t(lang, 'writeWithAI')}>
+        <ProductAICreator onApply={(o) => { setForm(f => ({ ...f, ...o, priceCents: (o.priceCents ? o.priceCents / 100 : f.priceCents) })); setAiOpen(false); }} />
+      </Modal>
+      {!data?.products?.length ? <Empty icon={IconBriefcase} title={t(lang, 'emptyProducts')} hint={t(lang, 'emptyProductsHint')} actions={user.role === 'company' && <Button onClick={() => { reset(); setOpen(true); }}>{t(lang, 'addProduct')}</Button>} /> : (
+        <Table columns={[{ label: t(lang, 'companyName'), key: 'title' }, { label: t(lang, 'type'), key: 'type' }, { label: t(lang, 'location'), key: 'location' }, { label: t(lang, 'price'), numeric: true, key: 'price' }, { label: t(lang, 'commission'), numeric: true, key: 'commission' }, { label: '', key: 'actions' }]}
           rows={data.products} renderCell={(row, key) => {
-            if (key === t(lang, 'price')) return formatMoney(row.priceCents, currency);
-            if (key === t(lang, 'commission')) return row.commissionPercent ? `${row.commissionPercent}%` : formatMoney(row.commissionFixedCents, currency);
-            if (key === t(lang, 'type')) return t(lang, `productTypes.${row.type}`);
-            return row[key === t(lang, 'companyName') ? 'title' : key];
+            if (key === 'price') return formatMoney(row.priceCents, currency, lang);
+            if (key === 'commission') return row.commissionPercent ? `${row.commissionPercent}%` : formatMoney(row.commissionFixedCents, currency, lang);
+            if (key === 'type') return t(lang, `productTypes.${row.type}`);
+            if (key === 'actions') return <div className="row-actions"><Button size="sm" variant="ghost" onClick={() => startEdit(row)}><Edit /></Button><Button size="sm" variant="destructive" onClick={() => del(row.id)}><Trash /></Button></div>;
+            return row[key];
           }} />
       )}
       {toast && <Toast message={toast} onClose={() => setToast('')} />}
+    </div>
+  );
+}
+
+function ProductAICreator({ onApply }) {
+  const { lang } = React.useContext(GlobalCtx);
+  const [type, setType] = useState('tour');
+  const [location, setLocation] = useState('');
+  const [price, setPrice] = useState('');
+  const [duration, setDuration] = useState('');
+  const [highlights, setHighlights] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [output, setOutput] = useState(null);
+  const [error, setError] = useState('');
+
+  async function generate() {
+    setLoading(true); setError(''); setOutput(null);
+    try {
+      const data = await api('/ai/product-write', { method: 'POST', body: { type, location, priceCents: Math.round(Number(price || 0) * 100), duration, highlights, lang } });
+      setOutput(data.parsed || data.text);
+    } catch (err) { setError(err.message || 'AI error'); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div className="ai-form">
+      {error && <div className="form-error"><AlertCircle /> {error}</div>}
+      <Select label={t(lang, 'type')} value={type} onChange={e => setType(e.target.value)} options={Object.keys(DICT.en.productTypes).map(k => ({ value: k, label: t(lang, `productTypes.${k}`) }))} />
+      <Input label={t(lang, 'location')} value={location} onChange={e => setLocation(e.target.value)} />
+      <Input label={t(lang, 'price')} type="number" value={price} onChange={e => setPrice(e.target.value)} />
+      <Input label={t(lang, 'duration')} value={duration} onChange={e => setDuration(e.target.value)} />
+      <Textarea label={t(lang, 'bio')} value={highlights} onChange={e => setHighlights(e.target.value)} />
+      <Button onClick={generate} disabled={loading}>{loading ? <Spinner /> : t(lang, 'generate')}</Button>
+      {output && (
+        <div className="ai-output">
+          <h4>{output.title}</h4>
+          <p>{output.description}</p>
+          <div className="row-actions">
+            <Button size="sm" onClick={() => onApply({ title: output.title, description: output.description, tags: output.tags, type, location, priceCents: Math.round(Number(price || 0) * 100), duration })}>{t(lang, 'apply')}</Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -704,16 +970,24 @@ function BookingsPage({ user }) {
   const [updating, setUpdating] = useState(null);
 
   async function changeStatus(id, status) {
-    setUpdating(id);
+    setUpdating(id + status);
     try { await api(`/bookings/${id}/status`, { method: 'POST', body: { status } }); reload(); }
     catch (e) { alert(e.message); }
     finally { setUpdating(null); }
   }
 
+  async function capturePayment(b) {
+    if (!b.paymentIntentId) return;
+    setUpdating('cap' + b.id);
+    try { await api(`/payments/${b.paymentIntentId}/capture`, { method: 'POST' }); reload(); }
+    catch (e) { alert(e.message); }
+    finally { setUpdating(null); }
+  }
+
   const columns = user.role === 'admin' ? [
-    { label: 'ID' }, { label: t(lang, 'productTypes') }, { label: t(lang, 'companyName') }, { label: t(lang, 'amount'), numeric: true }, { label: t(lang, 'status') }, { label: '' }
+    { label: 'ID' }, { label: t(lang, 'products') }, { label: t(lang, 'companyName') }, { label: t(lang, 'amount'), numeric: true }, { label: t(lang, 'status') }, { label: '' }
   ] : [
-    { label: 'ID' }, { label: t(lang, 'productTypes') }, { label: t(lang, 'amount'), numeric: true }, { label: t(lang, 'status') }, { label: '' }
+    { label: 'ID' }, { label: t(lang, 'products') }, { label: t(lang, 'amount'), numeric: true }, { label: t(lang, 'status') }, { label: '' }
   ];
 
   return (
@@ -728,15 +1002,16 @@ function BookingsPage({ user }) {
                 <td>#{b.id}</td>
                 <td>{b.productTitle}</td>
                 {user.role === 'admin' && <td>{b.companyName}</td>}
-                <td className="num">{formatMoney(b.travelerPriceCents, currency)}</td>
+                <td className="num">{formatMoney(b.travelerPriceCents, currency, lang)}</td>
                 <td><Badge tone={b.status === 'confirmed' ? 'success' : b.status === 'completed' ? 'brand' : b.status === 'cancelled' ? 'error' : 'warning'} dot>{t(lang, `status.${b.status}`)}</Badge></td>
                 <td>
                   <div className="row-actions">
-                    {(user.role === 'company' || user.role === 'admin') && b.status !== 'cancelled' && (
+                    {(user.role === 'company' || user.role === 'admin' || user.role === 'supplier') && b.status !== 'cancelled' && (
                       <>
-                        {b.status === 'pending' && <Button size="sm" onClick={() => changeStatus(b.id, 'confirmed')} disabled={updating === b.id}>{t(lang, 'confirm')}</Button>}
-                        {b.status === 'confirmed' && <Button size="sm" onClick={() => changeStatus(b.id, 'completed')} disabled={updating === b.id}>{t(lang, 'complete')}</Button>}
-                        {b.status !== 'completed' && b.status !== 'cancelled' && <Button size="sm" variant="destructive" onClick={() => changeStatus(b.id, 'cancelled')} disabled={updating === b.id}>{t(lang, 'cancel')}</Button>}
+                        {b.status === 'pending' && <Button size="sm" onClick={() => changeStatus(b.id, 'confirmed')} disabled={updating === b.id + 'confirmed'}>{t(lang, 'confirm')}</Button>}
+                        {b.status === 'confirmed' && <Button size="sm" onClick={() => changeStatus(b.id, 'completed')} disabled={updating === b.id + 'completed'}>{t(lang, 'complete')}</Button>}
+                        {b.status === 'confirmed' && b.paymentIntentStatus === 'succeeded' && <Button size="sm" variant="primary" onClick={() => capturePayment(b)} disabled={updating === 'cap' + b.id}>{t(lang, 'completeCapture')}</Button>}
+                        {b.status !== 'completed' && b.status !== 'cancelled' && <Button size="sm" variant="destructive" onClick={() => changeStatus(b.id, 'cancelled')} disabled={updating === b.id + 'cancelled'}>{t(lang, 'cancel')}</Button>}
                       </>
                     )}
                   </div>
@@ -760,10 +1035,11 @@ function SellersPage({ user }) {
     <div>
       <h1 className="page-title">{t(lang, 'sellers')}</h1>
       {!data?.sellers?.length ? <Empty icon={IconUsers} title={t(lang, 'emptySellers')} hint={t(lang, 'emptySellersHint')} /> : (
-        <Table columns={[{ label: t(lang, 'name') }, { label: t(lang, 'email') }, { label: t(lang, 'sellerCode') }, { label: t(lang, 'bookingsCount') }, { label: t(lang, 'earnings'), numeric: true }]}
+        <Table columns={[{ label: t(lang, 'name'), key: 'name' }, { label: t(lang, 'email'), key: 'email' }, { label: t(lang, 'sellerCode'), key: 'code' }, { label: t(lang, 'bookingsCount'), key: 'bookingsCount' }, { label: t(lang, 'earnings'), numeric: true, key: 'earnings' }]}
           rows={data.sellers} renderCell={(row, key) => {
-            if (key === t(lang, 'sellerCode')) return <button className="link" onClick={async () => { await navigator.clipboard.writeText(row.link); setToast(t(lang, 'linkCopied')); }}>{row.code}</button>;
-            return row[key === t(lang, 'name') ? 'name' : key === t(lang, 'email') ? 'email' : key === t(lang, 'bookingsCount') ? 'bookingsCount' : 'earningsCents'];
+            if (key === 'code') return <button className="link" onClick={async () => { await navigator.clipboard.writeText(`${location.origin}${location.pathname}#/marketplace?ref=${row.code}`); setToast(t(lang, 'linkCopied')); }}>{row.code}</button>;
+            if (key === 'earnings') return formatMoney(row.earningsCents, currency, lang);
+            return row[key];
           }} />
       )}
       {toast && <Toast message={toast} onClose={() => setToast('')} />}
@@ -773,16 +1049,16 @@ function SellersPage({ user }) {
 
 function LedgerPage({ user }) {
   const { lang, currency } = React.useContext(GlobalCtx);
-  const [{ data }, reload] = useFetch('/ledger');
+  const [{ data }] = useFetch('/ledger');
   return (
     <div>
       <h1 className="page-title">{t(lang, 'ledger')}</h1>
       {!data?.ledger?.length ? <Empty icon={IconDollar} title={t(lang, 'emptyLedger')} hint={t(lang, 'emptyLedgerHint')} /> : (
-        <Table columns={[{ label: t(lang, 'date') }, { label: t(lang, 'bookings') }, { label: t(lang, 'amount'), numeric: true }, { label: t(lang, 'status') }]}
+        <Table columns={[{ label: t(lang, 'date'), key: 'date' }, { label: t(lang, 'bookings'), key: 'booking' }, { label: t(lang, 'amount'), numeric: true, key: 'amount' }, { label: t(lang, 'status'), key: 'status' }]}
           rows={data.ledger} renderCell={(row, key) => {
-            if (key === t(lang, 'date')) return formatDate(row.createdAt, lang);
-            if (key === t(lang, 'amount')) return formatMoney(row.amountCents, currency);
-            if (key === t(lang, 'status')) return <Badge tone={row.status === 'available' ? 'success' : row.status === 'pending' ? 'warning' : 'neutral'} dot>{row.status}</Badge>;
+            if (key === 'date') return formatDate(row.createdAt, lang);
+            if (key === 'amount') return formatMoney(row.amountCents, currency, lang);
+            if (key === 'status') return <Badge tone={row.status === 'available' ? 'success' : row.status === 'pending' ? 'warning' : 'neutral'} dot>{row.status}</Badge>;
             return row.bookingId ? `#${row.bookingId}` : '-';
           }} />
       )}
@@ -808,7 +1084,7 @@ function PayoutsPage({ user }) {
   return (
     <div>
       <h1 className="page-title">{t(lang, 'payouts')}</h1>
-      {(user.role === 'company' || user.role === 'seller') && (
+      {(user.role === 'company' || user.role === 'seller' || user.role === 'supplier') && (
         <Card title={t(lang, 'requestPayout')} className="mb-4">
           {error && <div className="form-error"><AlertCircle /> {error}</div>}
           <form onSubmit={request} className="payout-form">
@@ -818,11 +1094,11 @@ function PayoutsPage({ user }) {
         </Card>
       )}
       {!data?.payouts?.length ? <Empty icon={IconDollar} title={t(lang, 'emptyPayouts')} hint={t(lang, 'emptyPayoutsHint')} /> : (
-        <Table columns={[{ label: t(lang, 'date') }, { label: t(lang, 'amount'), numeric: true }, { label: t(lang, 'status') }, { label: '' }]}
+        <Table columns={[{ label: t(lang, 'date'), key: 'date' }, { label: t(lang, 'amount'), numeric: true, key: 'amount' }, { label: t(lang, 'status'), key: 'status' }, { label: '', key: 'actions' }]}
           rows={data.payouts} renderCell={(row, key) => {
-            if (key === t(lang, 'date')) return formatDate(row.createdAt, lang);
-            if (key === t(lang, 'amount')) return formatMoney(row.amountCents, currency);
-            if (key === t(lang, 'status')) return <Badge tone={row.status === 'paid' ? 'success' : 'warning'} dot>{row.status === 'paid' ? t(lang, 'approved') : t(lang, 'pendingApproval')}</Badge>;
+            if (key === 'date') return formatDate(row.createdAt, lang);
+            if (key === 'amount') return formatMoney(row.amountCents, currency, lang);
+            if (key === 'status') return <Badge tone={row.status === 'paid' ? 'success' : 'warning'} dot>{row.status === 'paid' ? t(lang, 'approved') : t(lang, 'pendingApproval')}</Badge>;
             if (user.role === 'admin' && row.status === 'requested') return <Button size="sm" onClick={() => markPaid(row.id)}>{t(lang, 'markPaid')}</Button>;
             return null;
           }} />
@@ -861,7 +1137,7 @@ function SettingsPage({ user, onUpdate }) {
               <Input label={t(lang, 'taxId')} value={form.taxId} onChange={e => setForm({ ...form, taxId: e.target.value })} />
               <Input label={t(lang, 'phone')} value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
               <Input label={t(lang, 'website')} value={form.website} onChange={e => setForm({ ...form, website: e.target.value })} />
-              <Input as="textarea" label={t(lang, 'bio')} rows={4} value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} />
+              <Textarea label={t(lang, 'bio')} value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} />
             </>
           )}
           <Button type="submit" disabled={saving}>{saving ? <Spinner /> : t(lang, 'save')}</Button>
@@ -875,29 +1151,239 @@ function SettingsPage({ user, onUpdate }) {
 function SellerProducts({ user }) {
   const { lang, currency } = React.useContext(GlobalCtx);
   const [{ data }] = useFetch('/products');
+  const [links, setLinks] = useState({});
   const [toast, setToast] = useState('');
   const products = data?.products || [];
+
+  async function getLink(p) {
+    const res = await api(`/products/${p.id}/link`, { method: 'POST' });
+    setLinks(l => ({ ...l, [p.id]: res.link }));
+    await navigator.clipboard.writeText(res.link);
+    setToast(t(lang, 'linkCopied'));
+  }
+
   return (
     <div>
       <h1 className="page-title">{t(lang, 'products')}</h1>
       <div className="product-grid product-grid--compact">
         {products.map(p => (
           <Card key={p.id} title={p.title} subtitle={p.companyName} actions={
-            <Button size="sm" onClick={() => { navigator.clipboard.writeText(`${location.origin}${location.pathname}#/products/${p.id}?ref=${user.sellerCode}`); setToast(t(lang, 'linkCopied')); }}>
-              {t(lang, 'copy')} {t(lang, 'link')}
-            </Button>
+            <Button size="sm" onClick={() => getLink(p)}>{links[p.id] ? t(lang, 'copyLink') : t(lang, 'getLink')}</Button>
           }>
-            <p>{formatMoney((p.travelerPriceCents ?? p.priceCents), currency)} / {t(lang, 'perPerson')}</p>
+            <p>{formatMoney((p.travelerPriceCents ?? p.priceCents), currency, lang)} / {t(lang, 'perPerson')}</p>
             <p>{p.location}</p>
+            {links[p.id] && <p className="field__hint"><a className="link" href={links[p.id]}>{links[p.id]}</a></p>}
           </Card>
         ))}
       </div>
+      {!products.length && <Empty icon={IconBriefcase} title={t(lang, 'noResults')} hint={t(lang, 'emptyProductsHint')} />}
       {toast && <Toast message={toast} onClose={() => setToast('')} />}
     </div>
   );
 }
 
-function AdminCompanies({ user }) {
+function SellerAIPage() {
+  const { lang, currency } = React.useContext(GlobalCtx);
+  const [category, setCategory] = useState('all');
+  const [destination, setDestination] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+
+  const catOptions = [{ value: 'all', label: t(lang, 'all') }, ...Object.keys(DICT.en.productTypes).map(k => ({ value: k, label: t(lang, `productTypes.${k}`) }))];
+
+  async function search() {
+    setLoading(true); setError(''); setResult(null);
+    try {
+      const data = await api('/ai/seller-offer', { method: 'POST', body: { category: category === 'all' ? undefined : category, destination, lang } });
+      setResult(data);
+    } catch (err) { setError(err.message || 'Error'); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div>
+      <h1 className="page-title">{t(lang, 'offerFinder')}</h1>
+      <Card>
+        <div className="filters__row">
+          <Select value={category} onChange={e => setCategory(e.target.value)} options={catOptions} />
+          <Input value={destination} onChange={e => setDestination(e.target.value)} placeholder={t(lang, 'location')} />
+          <Button onClick={search} disabled={loading}>{loading ? <Spinner /> : t(lang, 'search')}</Button>
+        </div>
+        {error && <div className="form-error"><AlertCircle /> {error}</div>}
+      </Card>
+      {result?.aiText && <Card className="ai-card" title={t(lang, 'aiAssistant')}><div className="ai-text">{result.aiText}</div></Card>}
+      {result && (
+        <>
+          <h3 className="page-subtitle">{t(lang, 'topOffers')}</h3>
+          {result.products.length === 0 ? <Empty title={t(lang, 'noOffers')} /> : (
+            <div className="product-grid product-grid--compact">
+              {result.products.map(p => (
+                <Card key={p.id} title={p.title} subtitle={`${p.companyName} · ${p.location}`}>
+                  <p>{formatMoney(p.travelerPriceCents, currency, lang)} / {t(lang, 'perPerson')}</p>
+                  <Badge tone="success">{t(lang, 'estimatedProfit')}: {formatMoney(p.profitPerBookingCents, currency, lang)}</Badge>
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function TripPlannerPage() {
+  const { lang, currency } = React.useContext(GlobalCtx);
+  const [destination, setDestination] = useState('');
+  const [days, setDays] = useState(3);
+  const [budget, setBudget] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [plan, setPlan] = useState('');
+  const [error, setError] = useState('');
+
+  async function generate() {
+    setLoading(true); setPlan(''); setError('');
+    try {
+      const data = await api('/ai/trip-plan', { method: 'POST', body: { destination, days: Number(days), budgetCents: budget ? Math.round(Number(budget) * 100) : undefined, currency, lang } });
+      setPlan(data.text);
+    } catch (err) { setError(err.message || 'Error'); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div>
+      <h1 className="page-title">{t(lang, 'tripPlanner')}</h1>
+      <Card>
+        <div className="filters__row">
+          <Input label={t(lang, 'destination')} value={destination} onChange={e => setDestination(e.target.value)} />
+          <Input label={t(lang, 'days')} type="number" min="1" max="14" value={days} onChange={e => setDays(e.target.value)} />
+          <Input label={t(lang, 'budget')} type="number" value={budget} onChange={e => setBudget(e.target.value)} placeholder={currency} />
+          <Button onClick={generate} disabled={loading || !destination}>{loading ? <Spinner /> : t(lang, 'generatePlan')}</Button>
+        </div>
+        {error && <div className="form-error"><AlertCircle /> {error}</div>}
+      </Card>
+      {plan && <Card title={t(lang, 'aiPlanTitle')}><div className="ai-text">{plan}</div></Card>}
+    </div>
+  );
+}
+
+function AIToolsPage() {
+  const { lang } = React.useContext(GlobalCtx);
+  const [tab, setTab] = useState('writer');
+  return (
+    <div>
+      <h1 className="page-title">{t(lang, 'aiTools')}</h1>
+      <div className="tabs">
+        <button className={`tab ${tab === 'writer' ? 'tab--active' : ''}`} onClick={() => setTab('writer')}>{t(lang, 'productWriter')}</button>
+        <button className={`tab ${tab === 'translate' ? 'tab--active' : ''}`} onClick={() => setTab('translate')}>{t(lang, 'translate')}</button>
+      </div>
+      {tab === 'writer' ? <ProductAICreator onApply={() => {}} /> : <Translator />}
+    </div>
+  );
+}
+
+function Translator() {
+  const { lang } = React.useContext(GlobalCtx);
+  const [text, setText] = useState('');
+  const [target, setTarget] = useState('ar');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState('');
+  const [error, setError] = useState('');
+
+  async function translate() {
+    setLoading(true); setResult(''); setError('');
+    try {
+      const data = await api('/ai/translate', { method: 'POST', body: { text, targetLang: target } });
+      setResult(data.text);
+    } catch (err) { setError(err.message || 'Error'); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <Card>
+      <div className="ai-form">
+        <Select label={t(lang, 'language')} value={target} onChange={e => setTarget(e.target.value)} options={[{ value: 'en', label: 'English' }, { value: 'ar', label: 'العربية' }, { value: 'it', label: 'Italiano' }]} />
+        <Textarea label={t(lang, 'originalText')} value={text} onChange={e => setText(e.target.value)} />
+        <Button onClick={translate} disabled={loading || !text}>{loading ? <Spinner /> : t(lang, 'translateNow')}</Button>
+        {error && <div className="form-error"><AlertCircle /> {error}</div>}
+        {result && <Textarea label={t(lang, 'translatedText')} value={result} readOnly onChange={() => {}} />}
+      </div>
+    </Card>
+  );
+}
+
+function ConnectorsPage({ user }) {
+  const { lang } = React.useContext(GlobalCtx);
+  const [{ data }, reload] = useFetch('/connectors');
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ name: '', type: 'hotel', provider: 'sandbox', config: '{}' });
+  const [testing, setTesting] = useState(null);
+  const [testResults, setTestResults] = useState(null);
+  const [toast, setToast] = useState('');
+
+  async function add(e) {
+    e.preventDefault();
+    await api('/connectors', { method: 'POST', body: form });
+    setOpen(false); reload(); setToast(t(lang, 'saved'));
+  }
+
+  async function del(id) { if (confirm(t(lang, 'delete'))) { await api(`/connectors/${id}`, { method: 'DELETE' }); reload(); setToast(t(lang, 'updated')); } }
+
+  async function test(c) {
+    setTesting(c.id);
+    const res = await api(`/connectors/${c.id}/search`, { method: 'POST', body: { destination: 'Rome', guests: 2 } });
+    setTestResults(res.results); setTesting(null);
+  }
+
+  return (
+    <div>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">{t(lang, 'connectors')}</h1>
+          <p className="page-subtitle">{t(lang, 'connectorHint')}</p>
+        </div>
+        {(user.role === 'supplier' || user.role === 'company') && <Button onClick={() => setOpen(true)} left={<IconPlus />}>{t(lang, 'addConnector')}</Button>}
+      </div>
+      <Modal open={open} onClose={() => setOpen(false)} title={t(lang, 'addConnector')} actions={<><Button variant="secondary" onClick={() => setOpen(false)}>{t(lang, 'cancel')}</Button><Button onClick={add}>{t(lang, 'create')}</Button></>}>
+        <div className="product-form">
+          <Input label={t(lang, 'connectorName')} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required />
+          <Select label={t(lang, 'type')} value={form.type} onChange={e => setForm({ ...form, type: e.target.value, provider: data?.providers[e.target.value]?.[0] || 'sandbox' })} options={(data?.types || ['hotel','flight','transport','activity']).map(k => ({ value: k, label: t(lang, `productTypes.${k}`) || k }))} />
+          {form.type && <Select label={t(lang, 'provider')} value={form.provider} onChange={e => setForm({ ...form, provider: e.target.value })} options={(data?.providers?.[form.type] || ['sandbox']).map(p => ({ value: p, label: p }))} />}
+          <Textarea label={t(lang, 'config')} value={form.config} onChange={e => setForm({ ...form, config: e.target.value })} />
+        </div>
+      </Modal>
+      {testResults && (
+        <Modal open={!!testResults} onClose={() => setTestResults(null)} title={t(lang, 'searchResults')}>
+          <div className="connector-results">
+            {testResults.results.map(r => (
+              <Card key={r.id} title={r.title}>
+                <p>{r.location}</p>
+                <Badge tone="brand">{formatMoney(r.priceCents, 'USD')}</Badge>
+              </Card>
+            ))}
+          </div>
+        </Modal>
+      )}
+      {!data?.connectors?.length ? <Empty icon={BoxStack} title={t(lang, 'noConnectors')} hint={t(lang, 'connectorHint')} actions={(user.role === 'supplier' || user.role === 'company') && <Button onClick={() => setOpen(true)}>{t(lang, 'addConnector')}</Button>} /> : (
+        <div className="product-grid product-grid--compact">
+          {data.connectors.map(c => (
+            <Card key={c.id} title={c.name} subtitle={`${c.type} · ${c.provider}`} actions={
+              <div className="row-actions">
+                <Button size="sm" variant="secondary" onClick={() => test(c)} disabled={testing === c.id}>{testing === c.id ? <Spinner /> : t(lang, 'testConnector')}</Button>
+                {(user.role === 'admin' || user.role === 'supplier' || user.role === 'company') && <Button size="sm" variant="destructive" onClick={() => del(c.id)}><Trash /></Button>}
+              </div>
+            }>
+              <Badge tone={c.status === 'active' ? 'success' : 'neutral'} dot>{t(lang, c.status)}</Badge>
+            </Card>
+          ))}
+        </div>
+      )}
+      {toast && <Toast message={toast} onClose={() => setToast('')} />}
+    </div>
+  );
+}
+
+function AdminCompanies() {
   const { lang } = React.useContext(GlobalCtx);
   const [{ data }, reload] = useFetch('/admin/companies');
   async function approve(id) { await api(`/admin/companies/${id}/approve`, { method: 'POST' }); reload(); }
@@ -906,31 +1392,30 @@ function AdminCompanies({ user }) {
     <div>
       <h1 className="page-title">{t(lang, 'companies')}</h1>
       {!data?.companies?.length ? <Empty title={t(lang, 'noResults')} /> : (
-        <Table columns={[{ label: t(lang, 'companyName') }, { label: t(lang, 'email') }, { label: t(lang, 'status') }, { label: '' }]}
+        <Table columns={[{ label: t(lang, 'companyName'), key: 'name' }, { label: t(lang, 'email'), key: 'email' }, { label: t(lang, 'status'), key: 'status' }, { label: '', key: 'actions' }]}
           rows={data.companies} renderCell={(row, key) => {
-            if (key === t(lang, 'status')) return <Badge tone={row.status === 'approved' ? 'success' : row.status === 'rejected' ? 'error' : 'warning'} dot>{row.status}</Badge>;
-            if (key === '') return row.status === 'pending' ? <><Button size="sm" onClick={() => approve(row.id)}>{t(lang, 'approve')}</Button> <Button size="sm" variant="destructive" onClick={() => reject(row.id)}>{t(lang, 'reject')}</Button></> : null;
-            return row[key === t(lang, 'companyName') ? 'name' : 'email'];
+            if (key === 'status') return <Badge tone={row.status === 'approved' ? 'success' : row.status === 'rejected' ? 'error' : 'warning'} dot>{row.status}</Badge>;
+            if (key === 'actions') return row.status === 'pending' ? <><Button size="sm" onClick={() => approve(row.id)}>{t(lang, 'approve')}</Button> <Button size="sm" variant="destructive" onClick={() => reject(row.id)}>{t(lang, 'reject')}</Button></> : null;
+            return row[key];
           }} />
       )}
     </div>
   );
 }
 
-function AdminUsers({ user }) {
+function AdminUsers() {
   const { lang } = React.useContext(GlobalCtx);
   const [{ data }] = useFetch('/admin/users');
   return (
     <div>
       <h1 className="page-title">{t(lang, 'users')}</h1>
-      <Table columns={[{ label: t(lang, 'name') }, { label: t(lang, 'email') }, { label: t(lang, 'role') }]} rows={data?.users || []} renderCell={(row, key) => row[key === t(lang, 'name') ? 'name' : key === t(lang, 'email') ? 'email' : 'role']} />
+      <Table columns={[{ label: t(lang, 'name'), key: 'name' }, { label: t(lang, 'email'), key: 'email' }, { label: t(lang, 'role'), key: 'role' }, { label: t(lang, 'sellerCode'), key: 'sellerCode' }]}
+        rows={data?.users || []} renderCell={(row, key) => row[key]} />
     </div>
   );
 }
 
 // --- App ---
-const GlobalCtx = React.createContext({});
-
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -953,24 +1438,31 @@ function App() {
   else if (!user) content = <AuthRaw onLogin={onLogin} />;
   else {
     const first = params.parts[0] || '';
-    if (first === 'marketplace' || path === '/') content = <Dashboard user={user} />;
+    if (first === 'marketplace') content = <Marketplace user={user} />;
+    else if (path === '/') content = <Dashboard user={user} />;
     else if (first === 'products') {
       if (params.parts[1]) content = <ProductDetail id={params.parts[1]} user={user} navigate={push} />;
       else if (user.role === 'seller') content = <SellerProducts user={user} />;
       else content = <ProductsPage user={user} />;
     }
+    else if (first === 'checkout' && params.parts[1]) content = <CheckoutPage id={params.parts[1]} navigate={push} />;
+    else if (first === 'orders') content = <OrdersPage user={user} />;
     else if (first === 'bookings') content = <BookingsPage user={user} />;
     else if (first === 'sellers') content = <SellersPage user={user} />;
     else if (first === 'ledger') content = <LedgerPage user={user} />;
     else if (first === 'payouts') content = <PayoutsPage user={user} />;
     else if (first === 'settings') content = <SettingsPage user={user} onUpdate={u => setUser(u)} />;
+    else if (first === 'connectors') content = <ConnectorsPage user={user} />;
+    else if (first === 'trip-planner') content = <TripPlannerPage />;
     else if (first === 'seller' && params.parts[1] === 'products') content = <SellerProducts user={user} />;
+    else if (first === 'seller' && params.parts[1] === 'ai') content = <SellerAIPage />;
+    else if (first === 'ai-tools') content = <AIToolsPage />;
     else if (first === 'admin') {
-      if (params.parts[1] === 'companies') content = <AdminCompanies user={user} />;
-      else if (params.parts[1] === 'users') content = <AdminUsers user={user} />;
+      if (params.parts[1] === 'companies') content = <AdminCompanies />;
+      else if (params.parts[1] === 'users') content = <AdminUsers />;
       else if (params.parts[1] === 'bookings') content = <BookingsPage user={user} />;
       else if (params.parts[1] === 'payouts') content = <PayoutsPage user={user} />;
-      else content = <AdminCompanies user={user} />;
+      else content = <AdminCompanies />;
     }
     else content = <Dashboard user={user} />;
   }

@@ -427,7 +427,7 @@ export class App extends DurableObject<Env> {
       const u = c.get('user') as User;
       const company = this.companyFor(u.id);
       const sql = this.ctx.storage.sql;
-      let query = `SELECT b.*, p.title as product_title, p.type as product_type, c.name as company_name FROM bookings b JOIN products p ON b.product_id = p.id JOIN companies c ON b.company_id = c.id`;
+      let query = `SELECT b.*, p.title as product_title, p.type as product_type, c.name as company_name, pi.id as payment_intent_id, pi.status as payment_intent_status FROM bookings b JOIN products p ON b.product_id = p.id JOIN companies c ON b.company_id = c.id LEFT JOIN payment_intents pi ON pi.booking_id = b.id`;
       const params: any[] = [];
       if (u.role === 'admin') { /* all */ }
       else if (company) { query += ' WHERE b.company_id = ?'; params.push(company.id); }
@@ -484,7 +484,8 @@ export class App extends DurableObject<Env> {
       const b = this.bookingById(id);
       if (!b) return c.json({ message: 'Not found' }, 404);
       const company = this.companyFor(u.id);
-      if (u.role !== 'admin' && (!company || Number(b.company_id) !== company.id)) return c.json({ message: 'Forbidden' }, 403);
+      const isOwnTravelerCancel = u.role === 'traveler' && Number(b.traveler_id) === u.id && body.status === 'cancelled' && b.status === 'pending';
+      if (u.role !== 'admin' && (!company || Number(b.company_id) !== company.id) && !isOwnTravelerCancel) return c.json({ message: 'Forbidden' }, 403);
       if (!STATUS_TRANSITIONS[String(b.status)]?.includes(body.status)) return c.json({ message: 'Invalid status transition' }, 400);
       this.ctx.storage.sql.exec('UPDATE bookings SET status = ? WHERE id = ?', body.status, id);
       this.updateLedgerForBooking(id, body.status);
@@ -816,6 +817,7 @@ export class App extends DurableObject<Env> {
       basePriceCents: r.base_price_cents, sellerCommissionCents: r.seller_commission_cents,
       platformFeeCents: r.platform_fee_cents, companyShareCents: r.company_share_cents,
       sellerShareCents: r.seller_share_cents, travelerPriceCents: r.traveler_price_cents,
+      paymentIntentId: r.payment_intent_id, paymentIntentStatus: r.payment_intent_status,
       createdAt: r.created_at
     };
   }
