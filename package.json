@@ -1,0 +1,10 @@
+{
+  "name": "masidy-travel",
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "hono": "^4.6.0",
+    "zod": "^3.23.0",
+    "nanoid": "^5.0.0"
+  }
+}

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Masidy Travel</title>
+  <meta name="description" content="Travel marketplace for companies, sellers, suppliers and travelers." />
+  <script>
+    (function() {
+      var stored = localStorage.getItem('theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var dark = stored === 'dark' || (stored !== 'light' && prefersDark);
+      document.documentElement.classList.toggle('dark', dark);
+      var lang = localStorage.getItem('lang') || 'en';
+      var dir = lang === 'ar' ? 'rtl' : 'ltr';
+      document.documentElement.lang = lang;
+      document.documentElement.dir = dir;
+      window.__MASIDY_LANG__ = lang;
+    })();
+  </script>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div id="root"></div>
+  <script type="importmap">
+  {
+    "imports": {
+      "react": "https://esm.sh/react@18.3.1?external=react,react-dom",
+      "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime?external=react,react-dom",
+      "react-dom": "https://esm.sh/react-dom@18.3.1?external=react,react-dom",
+      "react-dom/client": "https://esm.sh/react-dom@18.3.1/client?external=react,react-dom"
+    }
+  }
+  </script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" data-type="module" data-presets="react" src="/app.jsx"></script>
+</body>
+</html>
