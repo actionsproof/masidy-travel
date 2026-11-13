@@ -313,7 +313,7 @@ function Toast({ message, onClose }) {
 }
 
 // --- Auth ---
-function Auth({ onLogin }) {
+function AuthRaw({ onLogin }) {
   const [mode, setMode] = useState('login');
   const [role, setRole] = useState('traveler');
   const [email, setEmail] = useState('');
@@ -950,7 +950,7 @@ function App() {
   const { path, push, params } = router;
   let content;
   if (!ready || loading) content = <div className="splash"><Spinner /></div>;
-  else if (!user) content = <Auth onLogin={onLogin} />;
+  else if (!user) content = <AuthRaw onLogin={onLogin} />;
   else {
     const first = params.parts[0] || '';
     if (first === 'marketplace' || path === '/') content = <Dashboard user={user} />;
